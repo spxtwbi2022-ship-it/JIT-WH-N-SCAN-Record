@@ -256,7 +256,7 @@ function enqueue(code){
     
     // 【修改點】呼叫更新列表
     updateScanList();
-    if(buffer.length >= BATCH_SIZE) sendBatch();
+    if(buffer.length >= BATCH_SIZE) ();
 }
 
 // 已移除刷槍掃描相關邏輯和函式 (handleScannerInput, startScannerMode, stopScannerMode)
