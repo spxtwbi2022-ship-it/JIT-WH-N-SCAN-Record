@@ -335,10 +335,8 @@ async function sendBatch(){
 }
 
 function startBatchTimer(){
-    stopBatchTimer();
-    timerId = setInterval(()=>{ sendBatch(); }, BATCH_TIMEOUT_MS);
-    // 💡 新增日誌來確認啟動時間
-    appendLog('計時器啟動，每 ' + (BATCH_TIMEOUT_MS/1000) + ' 秒嘗試上傳一次');
+stopBatchTimer();
+timerId = setInterval(()=>{ sendBatch(); }, BATCH_TIMEOUT_MS);
 }
 function stopBatchTimer(){ if(timerId) clearInterval(timerId); timerId=null; }
 
