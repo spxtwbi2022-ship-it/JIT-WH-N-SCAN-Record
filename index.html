@@ -376,9 +376,13 @@ btnStartCamera.addEventListener('click', ()=>{
         statusEl.textContent='掃描中...';
         isScanning = true; // 【修改點】啟動掃描
         btnSync.disabled = true; // 【修改點】掃描啟動時禁用上傳
-    }).catch(err=>{ alert('無法啟動相機: '+err); });
-    
-    
+    }).catch(err=>{ 
+        // 🚨 修正點：將錯誤印在 log 區塊，並彈出警示
+        appendLog(`🔴 相機啟動失敗：${err.name || 'Error'}: ${err.message || String(err)}`);
+        alert('無法啟動相機，請檢查瀏覽器權限或網路協議 (需 HTTPS)。詳見下方日誌。'); 
+        console.error('Camera startup error:', err);
+    });
+       
     startBatchTimer();
 });
 
