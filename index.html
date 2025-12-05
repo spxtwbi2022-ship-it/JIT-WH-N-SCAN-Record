@@ -53,7 +53,7 @@ button{padding:8px 12px}
     <thead>
         <tr style="background: #e7e7e7;">
             <th style="padding: 4px; border: 1px solid #ccc;">#</th>
-            <th style="padding: 4px; border: 1px solid #ccc;">賣家</th>
+            <!-- <th style="padding: 4px; border: 1px solid #ccc;">賣家</th> -->
             <th style="padding: 4px; border: 1px solid #ccc;">掃描編號 (QR Code)</th>
             <th style="padding: 4px; border: 1px solid #ccc;">狀態</th> </tr>
         </tr>
@@ -66,10 +66,8 @@ button{padding:8px 12px}
 <script src="config.js"></script>
 <script>
 // CONFIG from config.js: GAS_ENDPOINT, BATCH_SIZE, BATCH_TIMEOUT_MS
-// const driverInput = document.getElementById('driverId');
-// const sellerInput = document.getElementById('seller');
-const whTruckNumberSelect = document.getElementById('whTruckNumber'); // 👈 新增專車下拉選單變數
-const sellerSelect = document.getElementById('seller');
+// const whTruckNumberSelect = document.getElementById('whTruckNumber'); // 👈 新增專車下拉選單變數
+// const sellerSelect = document.getElementById('seller');
 // const btnStart = document.getElementById('btnStart');
 // 變更：將 btnStart 變數重新命名並新增刷槍按鈕變數
 const btnStartCamera = document.getElementById('btnStartCamera'); // 👈 從 btnStart 變更
@@ -115,7 +113,7 @@ function updateScanList(){
         const item = buffer[i];
         const row = scanTableBody.insertRow();
         row.insertCell().textContent = i + 1; // 序號
-        row.insertCell().textContent = item.seller; // 賣家名稱
+        // row.insertCell().textContent = item.seller; // 賣家名稱
         row.insertCell().textContent = item.code; // QR Code 編號
         // 處理 sent 狀態
         const statusCell = row.insertCell();
@@ -507,72 +505,72 @@ timerId = setInterval(()=>{ sendBatch(); }, BATCH_TIMEOUT_MS);
 function stopBatchTimer(){ if(timerId) clearInterval(timerId); timerId=null; }
 
 // 【新增函式】 從 GAS 獲取專車清單
-async function loadTrucks() {
-    appendLog('嘗試載入專車清單...');
-    try {
-        const truckEndpoint = GAS_ENDPOINT + '?action=getTrucks';
-        const resp = await fetch(truckEndpoint);
-        if (!resp.ok) {
-            throw new Error(`HTTP 錯誤: ${resp.status}`);
-        }
-        const j = await resp.json();
+// async function loadTrucks() {
+//     appendLog('嘗試載入專車清單...');
+//     try {
+//         const truckEndpoint = GAS_ENDPOINT + '?action=getTrucks';
+//         const resp = await fetch(truckEndpoint);
+//         if (!resp.ok) {
+//             throw new Error(`HTTP 錯誤: ${resp.status}`);
+//         }
+//         const j = await resp.json();
         
-        whTruckNumberSelect.innerHTML = '<option value="">-- 請選擇專車 --</option>';
+//         whTruckNumberSelect.innerHTML = '<option value="">-- 請選擇專車 --</option>';
 
-        if (j.status === 'ok' && j.trucks && j.trucks.length > 0) {
-            j.trucks.forEach(truck => {
-                const option = document.createElement('option');
-                option.value = truck;
-                option.textContent = truck;
-                whTruckNumberSelect.appendChild(option);
-            });
-            appendLog(`成功載入 ${j.trucks.length} 個專車編號`);
-        } else {
-            appendLog('專車清單載入失敗或為空: ' + (j.message || '請確認 GAS 設置'));
-        }
-    } catch (err) {
-        appendLog('載入專車清單時發生網路錯誤');
-        console.error(err);
-        whTruckNumberSelect.innerHTML = '<option value="">-- 載入錯誤 --</option>';
-    }
-}
+//         if (j.status === 'ok' && j.trucks && j.trucks.length > 0) {
+//             j.trucks.forEach(truck => {
+//                 const option = document.createElement('option');
+//                 option.value = truck;
+//                 option.textContent = truck;
+//                 whTruckNumberSelect.appendChild(option);
+//             });
+//             appendLog(`成功載入 ${j.trucks.length} 個專車編號`);
+//         } else {
+//             appendLog('專車清單載入失敗或為空: ' + (j.message || '請確認 GAS 設置'));
+//         }
+//     } catch (err) {
+//         appendLog('載入專車清單時發生網路錯誤');
+//         console.error(err);
+//         whTruckNumberSelect.innerHTML = '<option value="">-- 載入錯誤 --</option>';
+//     }
+// }
 
 // 【新增函式】 從 GAS 獲取賣家清單並填充下拉選單
-async function loadSellers(truckNumber) { 
-    // appendLog('嘗試載入賣家清單...');
-    sellerSelect.innerHTML = '<option value="">-- 載入中... --</option>';
-    appendLog(`嘗試載入專車 [${truckNumber}] 的賣家清單...`);
-    try {
-        const sellerEndpoint = `${GAS_ENDPOINT}?action=getSellers&truck=${encodeURIComponent(truckNumber)}`;
-        const resp = await fetch(sellerEndpoint);
+// async function loadSellers(truckNumber) { 
+//     // appendLog('嘗試載入賣家清單...');
+//     sellerSelect.innerHTML = '<option value="">-- 載入中... --</option>';
+//     appendLog(`嘗試載入專車 [${truckNumber}] 的賣家清單...`);
+//     try {
+//         const sellerEndpoint = `${GAS_ENDPOINT}?action=getSellers&truck=${encodeURIComponent(truckNumber)}`;
+//         const resp = await fetch(sellerEndpoint);
         
-        if (!resp.ok) {
-            throw new Error(`HTTP 錯誤: ${resp.status}`);
-        }
+//         if (!resp.ok) {
+//             throw new Error(`HTTP 錯誤: ${resp.status}`);
+//         }
         
-        const j = await resp.json();
+//         const j = await resp.json();
         
-        // 清空下拉選單
-        sellerSelect.innerHTML = '<option value="">-- 請選擇賣家 --</option>'; 
+//         // 清空下拉選單
+//         sellerSelect.innerHTML = '<option value="">-- 請選擇賣家 --</option>'; 
 
-        if (j.status === 'ok' && j.sellers && j.sellers.length > 0) {
-            j.sellers.forEach(seller => { // 遍歷變數名稱修改
-                const option = document.createElement('option');
-                option.value = seller;
-                option.textContent = seller;
-                sellerSelect.appendChild(option);
-            });
-            appendLog(`專車 [${truckNumber}] 成功載入 ${j.sellers.length} 個賣家`);
-        } else {
-            // 如果清單為空或錯誤
-            appendLog('賣家清單載入失敗或為空: ' + (j.message || '請確認 GAS 設置'));
-        }
-    } catch (err) {
-        appendLog('載入賣家清單時發生網路錯誤');
-        console.error(err);
-        sellerSelect.innerHTML = '<option value="">-- 載入錯誤 --</option>'; 
-    }
-}
+//         if (j.status === 'ok' && j.sellers && j.sellers.length > 0) {
+//             j.sellers.forEach(seller => { // 遍歷變數名稱修改
+//                 const option = document.createElement('option');
+//                 option.value = seller;
+//                 option.textContent = seller;
+//                 sellerSelect.appendChild(option);
+//             });
+//             appendLog(`專車 [${truckNumber}] 成功載入 ${j.sellers.length} 個賣家`);
+//         } else {
+//             // 如果清單為空或錯誤
+//             appendLog('賣家清單載入失敗或為空: ' + (j.message || '請確認 GAS 設置'));
+//         }
+//     } catch (err) {
+//         appendLog('載入賣家清單時發生網路錯誤');
+//         console.error(err);
+//         sellerSelect.innerHTML = '<option value="">-- 載入錯誤 --</option>'; 
+//     }
+// }
 
 btnStartCamera.addEventListener('click', ()=>{
     // 必須同時選擇 專車編號 且選擇 Seller
@@ -618,8 +616,8 @@ btnStartCamera.addEventListener('click', ()=>{
 
 // 【新增】啟動刷槍掃描按鈕的事件監聽器
 btnStartScanner.addEventListener('click', ()=>{
-    if(!whTruckNumberSelect.value){ alert('請選擇專車編號'); return; }
-    if(!sellerSelect.value){ alert('請選擇賣家 Seller'); return; }
+    // if(!whTruckNumberSelect.value){ alert('請選擇專車編號'); return; }
+    // if(!sellerSelect.value){ alert('請選擇賣家 Seller'); return; }
     
     // 【新增】檢查是否已經處於相機模式，如果是，先停止
     if (isScanning) {
@@ -828,68 +826,68 @@ btnSync.addEventListener('click', ()=>{
 });
 
 // 【新增事件：選擇專車編號後，自動載入賣家清單】
-whTruckNumberSelect.addEventListener('change', () => {
-    const selectedTruck = whTruckNumberSelect.value;
-    if (selectedTruck) {
-        // 清空 sellerSelect，並觸發 loadSellers
-        sellerSelect.innerHTML = '<option value="">-- 載入中... --</option>';
-        loadSellers(selectedTruck);
-    } else {
-        sellerSelect.innerHTML = '<option value="">-- 請先選擇專車 --</option>';
-    }
-    // 此外，切換專車/賣家時清空 buffer 的邏輯也應在這裡觸發
-    if (buffer.length > 0) {
-        // 觸發切換賣家清空資料的邏輯
-        sellerSelect.dispatchEvent(new Event('change')); 
-    }
-});
+// whTruckNumberSelect.addEventListener('change', () => {
+//     const selectedTruck = whTruckNumberSelect.value;
+//     if (selectedTruck) {
+//         // 清空 sellerSelect，並觸發 loadSellers
+//         sellerSelect.innerHTML = '<option value="">-- 載入中... --</option>';
+//         loadSellers(selectedTruck);
+//     } else {
+//         sellerSelect.innerHTML = '<option value="">-- 請先選擇專車 --</option>';
+//     }
+//     // 此外，切換專車/賣家時清空 buffer 的邏輯也應在這裡觸發
+//     if (buffer.length > 0) {
+//         // 觸發切換賣家清空資料的邏輯
+//         sellerSelect.dispatchEvent(new Event('change')); 
+//     }
+// });
 
 
 // 初始載入：
 loadLocalBuffer(); // 恢復離線緩存
-loadTrucks(); // ✅ 修正：先載入專車清單
+// loadTrucks(); // ✅ 修正：先載入專車清單
 // loadSellers(); // 載入賣家清單
 // 自動重試上傳(網路復原時)
 window.addEventListener('online', ()=>{ appendLog('網路回復，開始上傳'); sendBatch(); });
 // 【修正區域 2: 新增賣家切換事件，清空資料】
-sellerSelect.addEventListener('change', () => {
-    // 檢查當前是否有已記錄的資料，避免在啟動頁面時執行清空動作
-    if (buffer.length > 0) {
-        // 1. 清空 buffer (記憶體中的掃描紀錄)
-        buffer = []; 
+// sellerSelect.addEventListener('change', () => {
+//     // 檢查當前是否有已記錄的資料，避免在啟動頁面時執行清空動作
+//     if (buffer.length > 0) {
+//         // 1. 清空 buffer (記憶體中的掃描紀錄)
+//         buffer = []; 
         
-        // 2. 清空本地儲存 (離線緩存)
-        localStorage.removeItem(LOCAL_KEY);
+//         // 2. 清空本地儲存 (離線緩存)
+//         localStorage.removeItem(LOCAL_KEY);
         
-        // 3. 立即更新表格和計數器，讓頁面歸零
-        updateScanList();
+//         // 3. 立即更新表格和計數器，讓頁面歸零
+//         updateScanList();
         
-        appendLog('🔄 賣家切換完成，掃描紀錄已清空。請開始掃描新的批次。');
+//         appendLog('🔄 賣家切換完成，掃描紀錄已清空。請開始掃描新的批次。');
         
-        // 4. 停止自動批次上傳計時器
-        stopBatchTimer(); 
+//         // 4. 停止自動批次上傳計時器
+//         stopBatchTimer(); 
         
-        // 5. 停止掃描中的相機 (建議操作，確保邏輯清晰)
-        if (html5QrScanner) {
-            html5QrScanner.stop().then(() => {
-                html5QrScanner.clear();
-                html5QrScanner = null;
-                appendLog('相機已自動停止 (切換作業)。');
-                statusEl.textContent = '已停止 (切換作業)';
-                isScanning = false;
-                btnSync.disabled = false;
-            }).catch(e => console.error(e));
-        } else {
-            // 如果相機沒開，確保上傳按鈕可用
-            btnSync.disabled = false;
-        }
-        // 【新增】停止刷槍模式
-        if (isScannerMode) {
-            stopScannerMode();
-            statusEl.textContent = '已停止 (切換作業)';
-        }
-    }
-});
+//         // 5. 停止掃描中的相機 (建議操作，確保邏輯清晰)
+//         if (html5QrScanner) {
+//             html5QrScanner.stop().then(() => {
+//                 html5QrScanner.clear();
+//                 html5QrScanner = null;
+//                 appendLog('相機已自動停止 (切換作業)。');
+//                 statusEl.textContent = '已停止 (切換作業)';
+//                 isScanning = false;
+//                 btnSync.disabled = false;
+//             }).catch(e => console.error(e));
+//         } else {
+//             // 如果相機沒開，確保上傳按鈕可用
+//             btnSync.disabled = false;
+//         }
+//         // 【新增】停止刷槍模式
+//         if (isScannerMode) {
+//             stopScannerMode();
+//             statusEl.textContent = '已停止 (切換作業)';
+//         }
+//     }
+// });
 </script>
 </body>
 </html>
