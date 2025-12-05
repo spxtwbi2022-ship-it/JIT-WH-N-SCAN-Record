@@ -3,24 +3,23 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>掃箱系統</title>
+<title>單純掃箱系統</title>
 <script src="https://unpkg.com/html5-qrcode"></script>
 <style>
 body{font-family:system-ui, -apple-system, 'Noto Sans TC', sans-serif; padding:12px}
 #controls{display:flex; gap:8px; margin-bottom:8px}
 #log{white-space:pre-wrap; max-height:200px; overflow:auto; background:#f7f7f7; padding:8px}
-button{padding:8px 12px}
+button{padding:8px 12px; cursor: pointer;}
 </style>
 </head>
 <body>
-<h2>楊梅掃箱系統</h2>
+<h2>單純掃箱系統 (Camera Only)</h2>
 
 <div id="controls">
 <button id="btnStartCamera">啟動相機掃描</button>
 <button id="btnStop">停止</button>
 <button id="btnSync">立即上傳</button>
 </div>
-
 
 <div id="qr-reader" style="width:100%; max-width:480px; margin-bottom:8px"></div>
 <div id="status">尚未開始掃描</div>
@@ -40,6 +39,7 @@ button{padding:8px 12px}
         <tr style="background: #e7e7e7;">
             <th style="padding: 4px; border: 1px solid #ccc;">#</th>
             <th style="padding: 4px; border: 1px solid #ccc;">掃描編號 (QR Code)</th>
+            <th style="padding: 4px; border: 1px solid #ccc;">時間戳</th> 
             <th style="padding: 4px; border: 1px solid #ccc;">狀態</th> </tr>
         </tr>
     </thead>
@@ -50,48 +50,47 @@ button{padding:8px 12px}
 
 <script src="config.js"></script>
 <script>
-// CONFIG from config.js: GAS_ENDPOINT, BATCH_SIZE, BATCH_TIMEOUT_MS
-// const whTruckNumberSelect = document.getElementById('whTruckNumber'); 
-// const sellerSelect = document.getElementById('seller');
-// const btnStart = document.getElementById('btnStart');
+// ====================================================================
+// 【配置變數安全預設值】
+// 假設 config.js 存在並定義了以下變數。若無，使用預設值避免錯誤。
+// 請將這些預設值替換成您實際的值
+const GAS_ENDPOINT = window.GAS_ENDPOINT || 'YOUR_GOOGLE_APP_SCRIPT_URL_HERE'; 
+const BATCH_SIZE = window.BATCH_SIZE || 10;
+const BATCH_TIMEOUT_MS = window.BATCH_TIMEOUT_MS || 5000;
+const API_KEY = window.API_KEY || 'YOUR_API_KEY_HERE';
+// ====================================================================
 
-// 變更：將 btnStart 變數重新命名並新增刷槍按鈕變數
-const btnStartCamera = document.getElementById('btnStartCamera'); // 👈 從 btnStart 變更
-// 已移除 btnStartScanner
+// DOM 元素
+const btnStartCamera = document.getElementById('btnStartCamera');
 const btnStop = document.getElementById('btnStop');
 const btnSync = document.getElementById('btnSync');
 const logEl = document.getElementById('log');
 const statusEl = document.getElementById('status');
-
-// 掃描相關變數
 const totalCountEl = document.getElementById('totalCount');
 const scanTableBody = document.querySelector('#scanTable tbody');
-
 const uploadedCountEl = document.getElementById('uploadedCount'); 
 const pendingCountEl = document.getElementById('pendingCount');
 
-// 音效相關變數和函式 - 使用 Web Audio API
-let audioContext = null;
-
+// 掃描/緩存變數
+const LOCAL_KEY = 'qr_scan_offline_buffer_v1_simple';
 let html5QrScanner = null;
-let isScanning = false; // 追蹤相機掃描狀態
-// 已移除 isScannerMode
-    
+let isScanning = false;
+let audioContext = null;
 let buffer = []; // 未送出的掃描資料
 let sending = false;
 let timerId = null;
 
-// 載入 local cache 的未送出資料
-const LOCAL_KEY = 'qr_scan_offline_buffer_v1';
 
+// ====================================================================
+// 核心函式
+// ====================================================================
+
+/**
+ * 更新掃描紀錄列表和計數器
+ */
 function updateScanList(){
-    // ⬇️ 【修改點】新增計數邏輯
     let uploadedCount = 0;
-    
-    // 更新總計
     totalCountEl.textContent = buffer.length;
-
-    // 清空表格
     scanTableBody.innerHTML = ''; 
     
     // 遍歷 buffer，從最新掃描的開始顯示 (反向)
@@ -99,24 +98,27 @@ function updateScanList(){
         const item = buffer[i];
         const row = scanTableBody.insertRow();
         row.insertCell().textContent = i + 1; // 序號
-        // row.insertCell().textContent = item.seller; // 賣家名稱
         row.insertCell().textContent = item.code; // QR Code 編號
-        // 處理 sent 狀態
+        row.insertCell().textContent = item.ts; // 時間戳
+        
         const statusCell = row.insertCell();
 
         if(item.sent){
             row.style.backgroundColor = '#d4edda'; // 淺綠色背景
             statusCell.textContent = '✅ 已上傳';
-            uploadedCount++; // 統計已上傳筆數
+            uploadedCount++;
         } else {
             statusCell.textContent = '⏳ 待上傳';
         }
     }
-    // ⬇️ 【修改點】更新三個計數器
+    
     uploadedCountEl.textContent = uploadedCount;
     pendingCountEl.textContent = buffer.length - uploadedCount;
 }
     
+/**
+ * 載入本地緩存
+ */
 function loadLocalBuffer(){
     try{
         const raw = localStorage.getItem(LOCAL_KEY);
@@ -125,100 +127,83 @@ function loadLocalBuffer(){
             appendLog(`從 localStorage 載入 ${buffer.length} 筆`); 
         }
     }catch(e){ console.error(e);} 
-    // 【修改點】載入緩存後更新列表
     updateScanList(); 
 }
-
     
+/**
+ * 儲存本地緩存
+ */
 function saveLocalBuffer(){ localStorage.setItem(LOCAL_KEY, JSON.stringify(buffer)); }
 
-
-// function appendLog(text){
-// logEl.textContent = new Date().toLocaleTimeString() + ' - ' + text + '\n' + logEl.textContent;
-// }
-// 【修正區域 1: 確保日誌輸出安全】
+/**
+ * 新增日誌訊息
+ */
 function appendLog(text){
-    // 限制日誌訊息長度，避免顯示完整的 HTML 錯誤頁面
     let safeText = String(text);
-    
-    // 檢查訊息是否像是 HTML 內容 (例如包含 <html 或 <body 等) 或訊息過長，進行截斷
     if (safeText.includes('<html') || safeText.includes('<body') || safeText.length > 500) {
         safeText = safeText.substring(0, 500) + '... (載入錯誤訊息過長或包含 HTML 已截斷)';
     }
-
-    logEl.textContent = new Date().toLocaleTimeString() + ' - ' + safeText + '\n' + logEl.textContent;
+    logEl.textContent = new Date().toLocaleTimeString('zh-TW') + ' - ' + safeText + '\n' + logEl.textContent;
 }
 
+/**
+ * 初始化 Web Audio API Context
+ */
 function initAudioContext() {
     if (audioContext) return;
     try {
-        // 嘗試建立 AudioContext
-        // 由於瀏覽器可能需要前綴，這裡使用 window.AudioContext 或 window.webkitAudioContext
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         audioContext = new AudioContextClass();
-        console.log("AudioContext 初始化成功");
     } catch (e) {
         console.warn("無法初始化 AudioContext:", e);
     }
 }
 
-// 使用 Web Audio API 生成一個短促的 Beep 聲音
+/**
+ * 播放 Beep 聲音
+ */
 function playBeep() {
     if (!audioContext) {
-        // 如果 AudioContext 尚未初始化 (可能因為首次播放被阻止)，則嘗試初始化
         initAudioContext();
         if (!audioContext) return;
     }
     
-    // Web Audio API 的聲音生成邏輯
-    const duration = 0.1; // 聲音持續時間 (秒)
-    const frequency = 880; // 聲音頻率 (Hz, A5 音高)
+    const duration = 0.1;
+    const frequency = 880;
     const volume = 0.5;
     
-    // 建立震盪器 (Oscillator)
     const oscillator = audioContext.createOscillator();
-    // 建立增益節點 (GainNode) 來控制音量
     const gainNode = audioContext.createGain();
 
-    oscillator.type = 'square'; // 方波聲音較為尖銳，適合嗶嗶聲
+    oscillator.type = 'square';
     oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-
     gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
     
-    // 連接節點: 震盪器 -> 增益 -> 輸出
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
 
-    // 開始和結束聲音
     oscillator.start();
-    // 聲音在 duration 時間後結束
     oscillator.stop(audioContext.currentTime + duration);
-
-    // (可選) 在聲音結束後，將音量快速降為 0，避免爆音
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
 }
 
-// 移除舊的 playBeep 函式 (已用 Web Audio API 版本取代)
-// function playBeep() { ... }
-    
+/**
+ * 將掃描到的代碼加入隊列 (Buffer)
+ * @param {string} code - 掃描到的 QR Code 或條碼
+ */
 function enqueue(code){
-    // 【新增】播放音效
     playBeep();
     
-    // ⬇️ 【新增：檢查所有歷史紀錄】
-    // 使用 Array.prototype.some() 檢查 buffer 中是否已存在相同編號 (code) 的紀錄
+    // 檢查是否重複掃描 (在整個歷史紀錄中)
     const isDuplicate = buffer.some(item => item.code === code); 
     
     if(isDuplicate){
-        // 如果發現重複，則記錄日誌並退出，不將其加入 buffer
         appendLog(`⚠️ 忽略重複掃描: ${code} (已在歷史紀錄中)`); 
         return; 
     }
-    // ⬆️ 【結束：檢查所有歷史紀錄】
     
-    const now = new Date(); // 創建 Date 物件
-
-    // ⬇️ 【關鍵修改】將時間戳直接轉換成本地時區字串
+    const now = new Date();
+    // 格式化時間戳為台灣本地時區字串
     const localTimeString = now.toLocaleString('zh-TW', {
         year: 'numeric',
         month: '2-digit',
@@ -226,48 +211,36 @@ function enqueue(code){
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
-        hour12: false, // 24 小時制
-        timeZone: 'Asia/Taipei' // 確保是台灣時間
+        hour12: false, 
+        timeZone: 'Asia/Taipei'
     });
     
     const item = {
         code: code,
-        // ⬇️ 這裡修改為傳送專車編號
-        // driver: whTruckNumberSelect.value || 'unknown',
-        // seller: sellerSelect.value || '',
-        // ⬇️ 將 ts 欄位儲存為本地化字串 (您希望寫入 Sheet 的格式)
+        // 移除了 driver 和 seller 屬性
         ts: localTimeString
-        // ts: new Date().toISOString()
     };
-    // simple session dedupe // 由於我們已經檢查了所有歷史紀錄，不需要原來的 "simple session dedupe" 檢查。
-    // const last = buffer[buffer.length-1];
-    // if(last && last.code === item.code)
-    //      { appendLog('忽略重複掃描: '+item.code); 
-    //       return; 
-    // }
     
     buffer.push(item);
     saveLocalBuffer();
-    // appendLog('加入 buffer: '+code+' (buffer='+buffer.length+')'); // 舊日誌可註解掉
-    appendLog(`🟢 掃到: ${code}`); // 新日誌顯示
+    appendLog(`🟢 掃到: ${code}`);
     
-    // 【修改點】呼叫更新列表
     updateScanList();
-    if(buffer.length >= BATCH_SIZE) ();
+    
+    // 檢查是否達到批次大小，並觸發上傳
+    if(buffer.length >= BATCH_SIZE) sendBatch();
 }
 
-// 已移除刷槍掃描相關邏輯和函式 (handleScannerInput, startScannerMode, stopScannerMode)
-
-// 【最終版本：修復連發、未定義變數和傳送錯誤】
+/**
+ * 批次上傳待處理數據到後端 GAS
+ */
 async function sendBatch(){
     if(sending) return;
     
-    // ⬇️ 【步驟 1：建立包含索引的待上傳清單】
     const indexedPending = buffer
         .map((item, index) => ({ item, index }))
         .filter(entry => !entry.item.sent);
 
-    // 檢查是否有待上傳資料
     if(indexedPending.length === 0) {
         appendLog('✅ 沒有待上傳資料。');
         return; 
@@ -277,85 +250,73 @@ async function sendBatch(){
     
     sending = true;
     
-    // 從帶有索引的待上傳清單中取 batch 批次
     const batchEntries = indexedPending.slice(0, BATCH_SIZE); 
-    
-    // 準備傳送到後端的數據 (只包含 item)
     const batchToSend = batchEntries.map(entry => entry.item);
 
     try{
-        // ⚠️ 確保 GAS_ENDPOINT 和 API_KEY 在 config.js 或此腳本頂部有定義
         const resp = await fetch(GAS_ENDPOINT, {
-        method: 'POST',
-        headers: {'Content-Type': 'text/plain'},
-        // 傳送正確的 batchToSend
-        body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
-    });
-    
-    // 【檢查 HTTP 狀態碼】
-    if (!resp.ok) {
-        const errorText = await resp.text();
-        throw new Error(`HTTP 錯誤: ${resp.status} - ${errorText.substring(0, 50)}`);
-    }
-
-    const j = await resp.json();
-    if(j.status === 'ok'){
-        
-        // 【使用索引直接在原 buffer 上標記 sent=true】
-        batchEntries.forEach(entry => {
-            buffer[entry.index].sent = true;
+            method: 'POST',
+            headers: {'Content-Type': 'text/plain'},
+            body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
         });
         
-        saveLocalBuffer();
-    
-        const remainingToUpload = buffer.filter(item => !item.sent).length; 
-        // 修正日誌，使用 batchToSend.length 顯示成功上傳筆數
-        appendLog(`✅ 上傳成功 ${batchToSend.length} 筆, 剩餘待上傳: ${remainingToUpload} 筆 (總紀錄數: ${buffer.length})`);
-        
-        updateScanList();
-
-        // 【連發機制】
-        if (remainingToUpload > 0) {
-            setTimeout(sendBatch, 0); 
+        if (!resp.ok) {
+            const errorText = await resp.text();
+            throw new Error(`HTTP 錯誤: ${resp.status} - ${errorText.substring(0, 50)}`);
         }
-        
+
+        const j = await resp.json();
+        if(j.status === 'ok'){
+            batchEntries.forEach(entry => {
+                buffer[entry.index].sent = true;
+            });
+            
+            saveLocalBuffer();
+            const remainingToUpload = buffer.filter(item => !item.sent).length; 
+            appendLog(`✅ 上傳成功 ${batchToSend.length} 筆, 剩餘待上傳: ${remainingToUpload} 筆`);
+            
+            updateScanList();
+
+            // 連發機制 (只有在定時器啟動時才連發，以配合 Stop 按鈕)
+            if (remainingToUpload > 0 && timerId) { 
+                setTimeout(sendBatch, 0); 
+            }
+            
         } else {
-        appendLog('後端回傳錯誤: '+JSON.stringify(j));
-    }
+            appendLog('後端回傳錯誤: '+JSON.stringify(j));
+        }
     }catch(err){
         appendLog(`🔴 上傳失敗，稍後重試。錯誤類型: ${err.name} - ${err.message}`); 
         console.error(err); 
     } finally {
-        // 確保無論成功或失敗，上傳狀態旗標都被重置
         sending = false;
     }
 }
 
+/**
+ * 啟動批次上傳計時器
+ */
 function startBatchTimer(){
-stopBatchTimer();
-timerId = setInterval(()=>{ sendBatch(); }, BATCH_TIMEOUT_MS);
+    stopBatchTimer();
+    timerId = setInterval(()=>{ sendBatch(); }, BATCH_TIMEOUT_MS);
 }
-function stopBatchTimer(){ if(timerId) clearInterval(timerId); timerId=null; }
 
-// 【移除載入專車/賣家清單函式】
-// async function loadTrucks() { ... }
-// async function loadSellers(truckNumber) { ... }
+/**
+ * 停止批次上傳計時器
+ */
+function stopBatchTimer(){ 
+    if(timerId) clearInterval(timerId); 
+    timerId=null; 
+}
+
+
+// ====================================================================
+// 事件監聽器
+// ====================================================================
 
 btnStartCamera.addEventListener('click', ()=>{
-    // 必須同時選擇 專車編號 且選擇 Seller (已註解，保留)
-    // if(!whTruckNumberSelect.value){ 
-    //      alert('請選擇專車編號 (Truck)'); 
-    //      return; 
-    // }
-    // if(!sellerSelect.value){ 
-    //      alert('請選擇賣家 Seller'); 
-    //      return; 
-    // }
-    
-    // 【已移除檢查刷槍模式的邏輯】
-    
-    // 【新增】在用戶點擊時初始化 Audio Context
-    initAudioContext(); // <-- 在這裡呼叫
+    // 確保只啟動一次 Audio Context
+    initAudioContext();
         
     if(html5QrScanner) return; // 相機已經啟動則退出
         
@@ -364,27 +325,25 @@ btnStartCamera.addEventListener('click', ()=>{
         fps: 10,
         qrbox: {width:250, height:250}
     }, (decodedText, decodedResult)=>{
+        // 掃描成功的回調
         statusEl.textContent = '掃到: '+decodedText;
         enqueue(decodedText);
     }, (errorMessage) => {
-        // parse errors or no result
+        // 錯誤回調 (通常是沒有結果，可忽略)
     }).then(()=>{
-        appendLog('相機啟動'); 
+        // 啟動成功
+        appendLog('相機啟動成功'); 
         statusEl.textContent='掃描中...';
-        isScanning = true; // 【修改點】啟動掃描
-        btnSync.disabled = true; // 【修改點】掃描啟動時禁用上傳
+        isScanning = true;
+        btnSync.disabled = true; // 掃描啟動時禁用立即上傳
+        startBatchTimer();
     }).catch(err=>{ 
-        // 🚨 修正點：將錯誤印在 log 區塊，並彈出警示
+        // 啟動失敗
         appendLog(`🔴 相機啟動失敗：${err.name || 'Error'}: ${err.message || String(err)}`);
         alert('無法啟動相機，請檢查瀏覽器權限或網路協議 (需 HTTPS)。詳見下方日誌。'); 
         console.error('Camera startup error:', err);
     });
-       
-    startBatchTimer();
 });
-
-// 【已移除啟動刷槍掃描按鈕的事件監聽器】
-// btnStartScanner.addEventListener('click', ()=>{ ... });
 
 btnStop.addEventListener('click', ()=>{
     if(html5QrScanner){
@@ -393,24 +352,20 @@ btnStop.addEventListener('click', ()=>{
             html5QrScanner=null; 
             appendLog('相機已停止'); 
             statusEl.textContent='已停止';
-            isScanning = false; // 停止掃描
-            btnSync.disabled = false; // 停止後啟用上傳
+            isScanning = false;
+            btnSync.disabled = false; // 停止後啟用立即上傳
         }).catch(e=>console.error(e)); 
+    } else {
+        // 如果相機沒啟動，也確保狀態正確
+        statusEl.textContent = '已停止';
+        isScanning = false;
+        btnSync.disabled = false;
     }
-    // 【已移除停止刷槍模式的邏輯】
     
     stopBatchTimer();
-    
-    // 如果相機沒有啟動，確保狀態正確
-    if (!isScanning) {
-        statusEl.textContent = '已停止';
-    }
 });
 
-// 【已移除 startScannerMode 和 stopScannerMode 輔助函式】
-
 btnSync.addEventListener('click', ()=>{ 
-    // 【修改點】如果正在掃描，彈出警告並返回
     if(isScanning){
         alert('請先點擊「停止」按鈕結束掃描作業！');
         return;
@@ -418,17 +373,16 @@ btnSync.addEventListener('click', ()=>{
     sendBatch();
 });
 
-// 【已移除選擇專車編號/賣家切換事件】
-// whTruckNumberSelect.addEventListener('change', () => { ... });
-// sellerSelect.addEventListener('change', () => { ... });
-
-
-// 初始載入：
+// ====================================================================
+// 初始化
+// ====================================================================
 loadLocalBuffer(); // 恢復離線緩存
-// loadTrucks(); // 載入專車清單 (已註解)
-// loadSellers(); // 載入賣家清單 (已註解)
+
 // 自動重試上傳(網路復原時)
-window.addEventListener('online', ()=>{ appendLog('網路回復，開始上傳'); sendBatch(); });
+window.addEventListener('online', ()=>{ 
+    appendLog('網路回復，開始嘗試上傳'); 
+    sendBatch(); 
+});
 </script>
 </body>
 </html>
