@@ -232,12 +232,9 @@ function enqueue(code){
     
     const item = {
         code: code,
-        // driver: driverInput.value || 'unknown',
         // ⬇️ 這裡修改為傳送專車編號
         // driver: whTruckNumberSelect.value || 'unknown',
         // seller: sellerSelect.value || '',
-        driver: '',    // 留空
-        seller: '',    // 留空
         // ⬇️ 將 ts 欄位儲存為本地化字串 (您希望寫入 Sheet 的格式)
         ts: localTimeString
         // ts: new Date().toISOString()
