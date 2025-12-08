@@ -18,7 +18,7 @@ button{padding:8px 12px; cursor: pointer;}
 <div id="controls">
 <button id="btnStartCamera">啟動相機掃描</button>
 <button id="btnStop">停止</button>
-<button id="btnSync">立即上傳</button>
+<button id="btnSync">清空紀錄</button>
 </div>
 
 <div id="qr-reader" style="width:100%; max-width:480px; margin-bottom:8px"></div>
@@ -311,6 +311,44 @@ function stopBatchTimer(){
     timerId=null; 
 }
 
+// 清空所有本地掃描緩存 (buffer 和 localStorage)
+function clearLocalBuffer() {
+    // 檢查是否正在掃描中
+    if (isScanning) {
+        alert('🚫 正在掃描中！請先點擊「停止」按鈕結束掃描作業後，才能清空紀錄。');
+        appendLog('🔴 清空失敗：相機正在運作。');
+        return; // 退出函式，阻止清空操作
+    }
+    
+    // 檢查是否還有未上傳的資料
+    const pendingCount = buffer.filter(item => !item.sent).length;
+    if (pendingCount > 0) {
+        if (!confirm(`您還有 ${pendingCount} 筆待上傳資料。確定要清空所有紀錄嗎？`)) {
+            return;
+        }
+    } else {
+        if (!confirm("確定要清空所有掃描紀錄嗎？")) {
+            return;
+        }
+    }
+
+    // 1. 清空 buffer 陣列
+    buffer = [];
+    
+    // 2. 移除 localStorage 緩存
+    localStorage.removeItem(LOCAL_KEY);
+
+    // 3. 更新介面顯示
+    updateScanList();
+    
+    appendLog('✅ 所有掃描紀錄已清空 (包含本地緩存)。');
+    
+    // 停止相機 (如果正在掃描，雖然邏輯上清空通常在停止後進行)
+    if (isScanning) {
+        // 為了避免與 btnStop 衝突，這裡只做提示
+        appendLog('⚠️ 正在掃描，請按下「停止」按鈕結束作業。');
+    }
+}
 
 // ====================================================================
 // 事件監聽器
@@ -364,11 +402,12 @@ btnStop.addEventListener('click', ()=>{
 });
 
 btnSync.addEventListener('click', ()=>{ 
-    if(isScanning){
-        alert('請先點擊「停止」按鈕結束掃描作業！');
-        return;
-    }
-    sendBatch();
+    // if(isScanning){
+    //     alert('請先點擊「停止」按鈕結束掃描作業！');
+    //     return;
+    // }
+    // sendBatch();
+    clearLocalBuffer()
 });
 
 // ====================================================================
