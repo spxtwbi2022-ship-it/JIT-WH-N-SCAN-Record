@@ -241,12 +241,12 @@ async function sendBatch(){
     
     sending = true;
     
-    const batchEntries = indexedPending.slice(0, BATCH_SIZE); 
-    const batchToSend = batchEntries.map(entry => entry.item);
+    // const batchEntries = indexedPending.slice(0, BATCH_SIZE); 
+    // const batchToSend = batchEntries.map(entry => entry.item);
 
-    // 【新增除錯步驟：確認發送的 JSON 體】
-    const payload = { records: batchToSend, api_key: API_KEY || '' };
-    const jsonBody = JSON.stringify(payload);
+    // // 【新增除錯步驟：確認發送的 JSON 體】
+    // const payload = { records: batchToSend, api_key: API_KEY || '' };
+    // const jsonBody = JSON.stringify(payload);
     
     appendLog(`🟢 準備發送 ${batchToSend.length} 筆資料。`);
     // 輸出 JSON 體的前 200 個字元 (避免日誌過長)
