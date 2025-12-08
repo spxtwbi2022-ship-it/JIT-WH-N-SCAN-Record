@@ -319,6 +319,9 @@ function clearLocalBuffer() {
         appendLog('🔴 清空失敗：相機正在運作。');
         return; // 退出函式，阻止清空操作
     }
+
+    // 🌟 修正點：計算 pendingCount (必須在檢查前定義)
+    const pendingCount = buffer.filter(item => !item.sent).length;
     
     // 🌟 關鍵修正：如果有待上傳資料，強制阻止清空
     if (pendingCount > 0) {
