@@ -336,9 +336,11 @@ btnStartCamera.addEventListener('click', ()=>{
         statusEl.textContent='掃描中...';
         isScanning = true; // 【修改點】啟動掃描
         btnSync.disabled = true; // 【修改點】掃描啟動時禁用上傳
-    }).catch(err=>{ alert('無法啟動相機: '+err); });
 
-    startBatchTimer();
+        //成功啟動後才開始計時器
+        startBatchTimer();
+        
+    }).catch(err=>{ alert('無法啟動相機: '+err); });
 });
 
 btnStop.addEventListener('click', ()=>{
