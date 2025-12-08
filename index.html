@@ -253,12 +253,21 @@ async function sendBatch(){
     const batchEntries = indexedPending.slice(0, BATCH_SIZE); 
     const batchToSend = batchEntries.map(entry => entry.item);
 
+    // ==========================================================
+    // 2. 使用 FormData 構建 Body
+    // 讓瀏覽器自動處理 Content-Type: multipart/form-data
+    const payload = { records: batchToSend, api_key: API_KEY || '' };
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(payload)); 
+    // ==========================================================
+    
     try{
         const resp = await fetch(GAS_ENDPOINT, {
             method: 'POST',
+            body: formData
             // headers: {'Content-Type': 'text/plain'},
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
+            // headers: {'Content-Type': 'application/json'},
+            // body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
         });
         
         if (!resp.ok) {
