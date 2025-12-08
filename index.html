@@ -50,15 +50,6 @@ button{padding:8px 12px; cursor: pointer;}
 
 <script src="config.js"></script>
 <script>
-// ====================================================================
-// 【配置變數安全預設值】
-// 假設 config.js 存在並定義了以下變數。若無，使用預設值避免錯誤。
-// 請將這些預設值替換成您實際的值
-// const GAS_ENDPOINT = window.GAS_ENDPOINT || 'YOUR_GOOGLE_APP_SCRIPT_URL_HERE'; 
-// const BATCH_SIZE = window.BATCH_SIZE || 10;
-// const BATCH_TIMEOUT_MS = window.BATCH_TIMEOUT_MS || 5000;
-// const API_KEY = window.API_KEY || 'YOUR_API_KEY_HERE';
-// ====================================================================
 
 // DOM 元素
 const btnStartCamera = document.getElementById('btnStartCamera');
@@ -336,24 +327,18 @@ btnStartCamera.addEventListener('click', ()=>{
         fps: 10,
         qrbox: {width:250, height:250}
     }, (decodedText, decodedResult)=>{
-        // 掃描成功的回調
         statusEl.textContent = '掃到: '+decodedText;
         enqueue(decodedText);
     }, (errorMessage) => {
-        // 錯誤回調 (通常是沒有結果，可忽略)
+        // parse errors or no result
     }).then(()=>{
-        // 啟動成功
-        appendLog('相機啟動成功'); 
+        appendLog('相機啟動'); 
         statusEl.textContent='掃描中...';
-        isScanning = true;
-        btnSync.disabled = true; // 掃描啟動時禁用立即上傳
-        startBatchTimer();
-    }).catch(err=>{ 
-        // 啟動失敗
-        appendLog(`🔴 相機啟動失敗：${err.name || 'Error'}: ${err.message || String(err)}`);
-        alert('無法啟動相機，請檢查瀏覽器權限或網路協議 (需 HTTPS)。詳見下方日誌。'); 
-        console.error('Camera startup error:', err);
-    });
+        isScanning = true; // 【修改點】啟動掃描
+        btnSync.disabled = true; // 【修改點】掃描啟動時禁用上傳
+    }).catch(err=>{ alert('無法啟動相機: '+err); });
+
+    startBatchTimer();
 });
 
 btnStop.addEventListener('click', ()=>{
