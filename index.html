@@ -258,8 +258,8 @@ async function sendBatch(){
             // body: formData
             headers: {'Content-Type': 'text/plain'},
             // headers: {'Content-Type': 'application/json'},
-            // body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
-            body: jsonBody
+            body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
+            // body: jsonBody
         });
         
         if (!resp.ok) {
