@@ -320,17 +320,20 @@ function clearLocalBuffer() {
         return; // 退出函式，阻止清空操作
     }
     
-    // 檢查是否還有未上傳的資料
-    const pendingCount = buffer.filter(item => !item.sent).length;
+    // 🌟 關鍵修正：如果有待上傳資料，強制阻止清空
     if (pendingCount > 0) {
-        if (!confirm(`您還有 ${pendingCount} 筆待上傳資料。確定要清空所有紀錄嗎？`)) {
-            return;
-        }
-    } else {
-        if (!confirm("確定要清空所有掃描紀錄嗎？")) {
-            return;
-        }
+        alert(`❌ 清空失敗！您還有 ${pendingCount} 筆資料尚未成功上傳。請點擊「啟動相機掃描」或重新連線，待所有資料上傳成功後再嘗試清空。`);
+        appendLog(`🔴 清空失敗：尚有 ${pendingCount} 筆待上傳資料。`);
+        return; // 阻止清空操作
     }
+    
+    // 3. 如果沒有待上傳資料，提示用戶是否要清空已上傳的資料
+    if (!confirm("✅ 所有資料已上傳。確定要清空所有紀錄嗎？")) {
+        return; // 使用者取消
+    }
+
+    // 確定清空後，停止任何可能的批次上傳定時器
+    stopBatchTimer();
 
     // 1. 清空 buffer 陣列
     buffer = [];
