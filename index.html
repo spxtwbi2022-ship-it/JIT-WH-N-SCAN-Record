@@ -256,8 +256,8 @@ async function sendBatch(){
     try{
         const resp = await fetch(GAS_ENDPOINT, {
             method: 'POST',
-            headers: {'Content-Type': 'text/plain'},
-            // headers: {'Content-Type': 'application/json'},
+            // headers: {'Content-Type': 'text/plain'},
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ records: batchToSend, api_key: API_KEY || '' })
         });
         
